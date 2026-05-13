@@ -1,0 +1,25 @@
+{
+  "identity": {
+    "email": "alex.ruppel@applied.co",
+    "slack_user_id": "U08C621K1J4",
+    "slack_dm_channel": "D08B2MM7NUF",
+    "timezone": "Europe/Berlin"
+  },
+  "priority_senders": [],
+  "invoice_labels": [],
+  "invoice_handled_labels": ["first follow up done"],
+  "invoice_keywords": [
+    "invoice",
+    "receipt",
+    "bill",
+    "your order",
+    "order confirmation",
+    "payment confirmation",
+    "subscription"
+  ],
+  "sections": {
+    "act_now":  { "emoji": ":email:" },
+    "invoices": { "emoji": ":receipt:" },
+    "digest":   { "emoji": ":inbox_tray:" }
+  }
+}
