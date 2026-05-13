@@ -3,9 +3,9 @@ name: gmail-morning-briefing
 description: >
   Alex's daily Gmail briefing. Runs weekdays at ~8am CET via claude.ai/code routines.
   Inbox-only (skip-inbox emails excluded by design). 3 sections: Act Now, Invoices &
-  Bills (7-day window, auto-labeled when actioned), Digest. Displays full results in
-  the session, sends a 1-line Slack DM with a link to the run, then stays interactive
-  for drafting replies, labeling, and skill edits committed to GitHub.
+  Bills (7-day window, tracks handled invoices via state.json in repo), Digest. Displays
+  full results in the session, sends a 1-line Slack DM with a link to the run, then stays
+  interactive for drafting replies, labeling, and skill edits committed to GitHub.
 ---
 
 # Gmail Morning Briefing
@@ -24,7 +24,7 @@ and section emojis throughout.
 
 ---
 
-## Step 0: Time Window & Label Bootstrap
+## Step 0: Time Window & State
 
 ### 0a — Compute time window
 
@@ -58,11 +58,25 @@ same way but always `now - 7 days` (used for the invoice section only).
 Store the current time as `NOW_CET` (formatted: `Wed 13 May · 8:03am CET`) for the
 briefing header.
 
-### 0b — Ensure "first follow up done" label exists
+### 0b — Load handled invoice state
 
-Call `list_labels`. Check whether a label named `"first follow up done"` (case-insensitive)
-exists. If not, call `create_label` with `name: "first follow up done"`. Store its
-`id` as `HANDLED_LABEL_ID` for use in Step 5.
+Read `state.json` from the repo root. It contains `handled_invoice_threads`: a list
+of thread IDs that Alex has already followed up on from a previous session.
+
+If `state.json` does not exist, treat `handled_invoice_threads` as an empty list.
+
+```json
+{
+  "handled_invoice_threads": []
+}
+```
+
+This file is the primary mechanism for excluding already-actioned invoices across runs.
+It requires no Gmail write permissions during the automated briefing step.
+
+Also call `list_labels` to check whether a label named `"first follow up done"` exists.
+Store its `id` as `HANDLED_LABEL_ID` if found (used as a secondary signal in Step 1 Agent 2,
+and applied during interactive Step 5 when Alex is present to approve the permission).
 
 ---
 
@@ -114,12 +128,14 @@ Run the following searches simultaneously (all calls in one turn):
 Deduplicate results by thread_id. For each thread call get_thread.
 
 For each thread, determine:
+- IN_STATE_JSON: whether thread_id appears in `handled_invoice_threads` from `state.json`
+  (primary exclusion signal — no Gmail write needed)
 - HAS_ALEX_REPLY: whether any message in the thread is FROM alex.ruppel@applied.co
   AND has a timestamp AFTER the first invoice/bill message in the thread
-- HAS_HANDLED_LABEL: whether the thread's labelIds contains any label matching
-  invoice_handled_labels from config.json (compare by label name, case-insensitive)
+- HAS_HANDLED_LABEL: whether the thread's labelIds contains `HANDLED_LABEL_ID`
+  (secondary signal — only applies if the label was found in Step 0b)
 
-Exclude threads where HAS_ALEX_REPLY=true OR HAS_HANDLED_LABEL=true.
+Exclude threads where IN_STATE_JSON=true OR HAS_ALEX_REPLY=true OR HAS_HANDLED_LABEL=true.
 
 Classify remaining threads by subtype:
 - "invoice" if subject or body contains: invoice, bill, due, payment due, amount due
@@ -265,37 +281,49 @@ The session stays live after the briefing. Handle these commands:
 - **`"reply to [N]"`** — Fetch thread N, draft a reply, show it to Alex for review.
   After Alex confirms: call `create_draft` with the reply body and the correct `thread_id`.
   Tell Alex: "Draft saved — open Gmail to review and send."
-  **If thread N is an invoice item: also call `label_thread` with `HANDLED_LABEL_ID` after creating the draft.**
+  **If thread N is an invoice item: mark as handled (see below).**
 
 - **`"forward invoice [N] to [address]"`** — Fetch thread N, draft a forward to the specified
   address (default: `accounts-payable@applied.co` if no address given), show for review.
-  After Alex confirms: call `create_draft`.
-  **Automatically call `label_thread` with `HANDLED_LABEL_ID` after creating the draft.**
+  After Alex confirms: call `create_draft`. **Mark as handled (see below).**
 
 ### Labels & Filing
 - **`"label [N] as [label name]"`** — Call `label_thread` with the named label (create it first
-  via `create_label` if it doesn't exist).
-- **`"archive [N]"`** — Call `label_thread` to remove INBOX label (apply `label:archive` pattern).
-- **`"mark [N] as done"`** / **`"done with [N]"`** — For invoice items: apply `HANDLED_LABEL_ID`.
+  via `create_label` if it doesn't exist). Alex will approve the permission prompt.
+- **`"archive [N]"`** — Call `label_thread` to remove INBOX label. Alex approves.
+- **`"mark [N] as done"`** / **`"done with [N]"`** — Mark as handled (see below).
 
-### Any follow-up action on an invoice thread
-Whenever Alex takes ANY action on a thread classified as an invoice (reply, forward, label,
-archive, upload trigger), automatically apply `HANDLED_LABEL_ID` via `label_thread` unless
-the label is already present. Confirm: "Marked as 'first follow up done'."
+### Marking an invoice as handled
+Whenever Alex takes any action on an invoice thread (reply, forward, label, archive):
+
+1. **Primary — update `state.json`** (no Gmail write, no permission prompt):
+   Add the thread_id to `handled_invoice_threads` in `state.json`, then commit and push:
+   ```bash
+   # state.json is updated programmatically, then:
+   git add state.json
+   git commit -m "state: mark invoice {thread_id} as handled"
+   git push origin main
+   ```
+   Confirm: "Marked as handled — won't appear in tomorrow's briefing."
+
+2. **Bonus — apply Gmail label** (requires one-time permission approval from Alex):
+   If `HANDLED_LABEL_ID` is known, also call `label_thread` with it. If the label doesn't
+   exist yet, offer to create it: "Want me to also create a 'first follow up done' Gmail
+   label? You'll see one approval prompt." If Alex says yes, call `create_label` then
+   `label_thread`.
 
 ### Config edits
 - **`"add [name/email] to priority senders"`** — Edit `config.json`, add to `priority_senders`.
 - **`"add label [X] to invoice labels"`** — Edit `config.json`, add label name to `invoice_labels`.
-- **`"add [X] to handled labels"`** — Edit `config.json`, add to `invoice_handled_labels`.
 
 ### Skill edits
 - **`"update skill to [rule]"`** / any instruction to change briefing behavior — Edit `SKILL.md`
   directly with the specified change.
 
-### Auto-commit after any config or skill edit
-After any edit to `SKILL.md` or `config.json`:
+### Auto-commit after any config, state, or skill edit
+After any edit to `SKILL.md`, `config.json`, or `state.json`:
 ```bash
-git add SKILL.md config.json
+git add SKILL.md config.json state.json
 git commit -m "skill: [short description of change]"
 git push origin main
 ```
