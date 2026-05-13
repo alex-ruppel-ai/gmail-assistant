@@ -6,7 +6,11 @@
     "timezone": "Europe/Berlin"
   },
   "priority_senders": [],
-  "invoice_labels": [],
+  "invoice_labels": [
+    "Label_596404611803307123",
+    "Label_6048108814904160032",
+    "Label_6195726061300016709"
+  ],
   "invoice_handled_labels": ["first follow up done"],
   "invoice_keywords": [
     "invoice",
