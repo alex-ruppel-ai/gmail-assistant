@@ -12,6 +12,10 @@
     "Label_6195726061300016709"
   ],
   "invoice_handled_labels": ["first follow up done"],
+  "claude_labels": {
+    "open_to_do": "Label_6806559357173714028",
+    "done": "Label_6047423869266123137"
+  },
   "invoice_keywords": [
     "invoice",
     "receipt",

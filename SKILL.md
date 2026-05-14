@@ -292,14 +292,16 @@ The session stays live after the briefing. Handle these commands:
   After Alex confirms: call `create_draft`. **Mark as handled (see below).**
 
 ### Labels & Filing
-- **`"mark [N] as to do"`** — Apply the `STARRED` system label via `label_thread`. No label
-  creation needed — STARRED is always available.
+- **`"mark [N] as to do"`** — Apply label `claude-open-to-do` (`Label_6806559357173714028`)
+  via `label_thread`.
+- **`"mark [N] as done"`** / **`"done with [N]"`** — Apply label `claude-done`
+  (`Label_6047423869266123137`) via `label_thread`. Also mark as handled (see below) if
+  thread N is an invoice item.
 - **`"label [N] as [label name]"`** — Call `label_thread` with an existing label ID from
   `list_labels`. Do NOT call `create_label` automatically — it requires manual approval
   from Alex. If no matching label exists, list the available labels and ask Alex to choose
   or confirm he wants a new one created.
 - **`"archive [N]"`** — Call `label_thread` to remove INBOX label. Alex approves.
-- **`"mark [N] as done"`** / **`"done with [N]"`** — Mark as handled (see below).
 
 ### Marking an invoice as handled
 Whenever Alex takes any action on an invoice thread (reply, forward, label, archive):
