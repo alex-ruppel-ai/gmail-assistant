@@ -23,7 +23,13 @@
     "your order",
     "order confirmation",
     "payment confirmation",
-    "subscription"
+    "subscription",
+    "Rechnung",
+    "Rechnungen",
+    "Mahnung",
+    "Mahnungen",
+    "accountspayable",
+    "accounts-payable"
   ],
   "sections": {
     "act_now":  { "emoji": ":email:" },

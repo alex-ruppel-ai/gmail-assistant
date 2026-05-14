@@ -138,10 +138,13 @@ For each thread, determine:
 - HAS_HANDLED_LABEL: whether the thread's labelIds contains `HANDLED_LABEL_ID`
   (secondary signal — only applies if the label was found in Step 0b)
 
-Exclude threads where IN_STATE_JSON=true OR HAS_ALEX_REPLY=true OR HAS_HANDLED_LABEL=true.
+Exclude threads where IN_STATE_JSON=true OR HAS_HANDLED_LABEL=true.
+Do NOT exclude on HAS_ALEX_REPLY alone — Alex may have replied but still wants to see
+the invoice. Instead, mark threads with HAS_ALEX_REPLY=true with "[replied]" in the display.
 
 Classify remaining threads by subtype:
-- "invoice" if subject or body contains: invoice, bill, due, payment due, amount due
+- "invoice" if subject or body contains: invoice, bill, due, payment due, amount due,
+  Rechnung, Rechnungen, Mahnung, Mahnungen, accountspayable, accounts-payable
 - "order" if subject or body contains: order, shipped, delivery, tracking, arrives
 - "subscription" if subject or body contains: subscription, renewal, renews, plan, charged
 
