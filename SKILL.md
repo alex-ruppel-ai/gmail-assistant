@@ -98,7 +98,10 @@ For each thread returned, call get_thread to fetch the full message list.
 
 For each thread, determine:
 - SENDER: the From address of the most recent message
-- LAST_FROM_ALEX: whether the most recent message in the thread is FROM alex.ruppel@applied.co
+- ALEX_REPLIED_IN_WINDOW: whether alex.ruppel@applied.co sent ANY message in the thread
+  with a timestamp after OLDEST_DATE. This is a hard exclusion signal — if Alex replied
+  recently, exclude from ACT_NOW even if a later automated reply, OOO, or system
+  notification arrived after his message.
 - ADDRESSEE: whether alex.ruppel@applied.co appears in TO or CC of any message
 - HAS_QUESTION_OR_ACTION: whether the email body contains a direct question, request, or
   clear action expected of Alex (look for question marks, "please", "can you", "could you",
@@ -106,7 +109,7 @@ For each thread, determine:
 - UNREAD: whether any message in the thread is unread (labelIds includes "UNREAD")
 
 Classify each thread:
-- ACT_NOW if: LAST_FROM_ALEX=false AND (UNREAD=true OR HAS_QUESTION_OR_ACTION=true) AND ADDRESSEE=true
+- ACT_NOW if: ALEX_REPLIED_IN_WINDOW=false AND (UNREAD=true OR HAS_QUESTION_OR_ACTION=true) AND ADDRESSEE=true
 - DIGEST otherwise
 
 Return structured list with fields: thread_id, subject, sender_name, sender_email,
@@ -135,10 +138,13 @@ For each thread, determine:
 - HAS_HANDLED_LABEL: whether the thread's labelIds contains `HANDLED_LABEL_ID`
   (secondary signal — only applies if the label was found in Step 0b)
 
-Exclude threads where IN_STATE_JSON=true OR HAS_ALEX_REPLY=true OR HAS_HANDLED_LABEL=true.
+Exclude threads where IN_STATE_JSON=true OR HAS_HANDLED_LABEL=true.
+Do NOT exclude on HAS_ALEX_REPLY alone — Alex may have replied but still wants to see
+the invoice. Instead, mark threads with HAS_ALEX_REPLY=true with "[replied]" in the display.
 
 Classify remaining threads by subtype:
-- "invoice" if subject or body contains: invoice, bill, due, payment due, amount due
+- "invoice" if subject or body contains: invoice, bill, due, payment due, amount due,
+  Rechnung, Rechnungen, Mahnung, Mahnungen, accountspayable, accounts-payable
 - "order" if subject or body contains: order, shipped, delivery, tracking, arrives
 - "subscription" if subject or body contains: subscription, renewal, renews, plan, charged
 
@@ -178,8 +184,9 @@ After all 3 agents return:
 1. **Dedup by thread_id** across Agent 1 and Agent 3 (Agent 2 may overlap — keep invoice
    classification if a thread appears in both invoice and inbox results).
 
-2. **Act Now final filter:** Remove any thread where `LAST_FROM_ALEX=true` (Alex's message
-   is the most recent — he already replied, no new incoming message since).
+2. **Act Now final filter:** Remove any thread where `ALEX_REPLIED_IN_WINDOW=true` (Alex
+   sent a message in this thread within the scan window — he already covered it, even if
+   a later automated reply, OOO, or system notification arrived after).
 
 3. **Act Now ordering:** Sort by `last_message_ts` descending. Move threads whose
    `sender_email` matches any entry in `priority_senders` to the top.
@@ -288,10 +295,16 @@ The session stays live after the briefing. Handle these commands:
   After Alex confirms: call `create_draft`. **Mark as handled (see below).**
 
 ### Labels & Filing
-- **`"label [N] as [label name]"`** — Call `label_thread` with the named label (create it first
-  via `create_label` if it doesn't exist). Alex will approve the permission prompt.
+- **`"mark [N] as to do"`** — Apply label `claude-open-to-do` (`Label_6806559357173714028`)
+  via `label_thread`.
+- **`"mark [N] as done"`** / **`"done with [N]"`** — Apply label `claude-done`
+  (`Label_6047423869266123137`) via `label_thread`. Also mark as handled (see below) if
+  thread N is an invoice item.
+- **`"label [N] as [label name]"`** — Call `label_thread` with an existing label ID from
+  `list_labels`. Do NOT call `create_label` automatically — it requires manual approval
+  from Alex. If no matching label exists, list the available labels and ask Alex to choose
+  or confirm he wants a new one created.
 - **`"archive [N]"`** — Call `label_thread` to remove INBOX label. Alex approves.
-- **`"mark [N] as done"`** / **`"done with [N]"`** — Mark as handled (see below).
 
 ### Marking an invoice as handled
 Whenever Alex takes any action on an invoice thread (reply, forward, label, archive):
