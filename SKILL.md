@@ -98,7 +98,10 @@ For each thread returned, call get_thread to fetch the full message list.
 
 For each thread, determine:
 - SENDER: the From address of the most recent message
-- LAST_FROM_ALEX: whether the most recent message in the thread is FROM alex.ruppel@applied.co
+- ALEX_REPLIED_IN_WINDOW: whether alex.ruppel@applied.co sent ANY message in the thread
+  with a timestamp after OLDEST_DATE. This is a hard exclusion signal — if Alex replied
+  recently, exclude from ACT_NOW even if a later automated reply, OOO, or system
+  notification arrived after his message.
 - ADDRESSEE: whether alex.ruppel@applied.co appears in TO or CC of any message
 - HAS_QUESTION_OR_ACTION: whether the email body contains a direct question, request, or
   clear action expected of Alex (look for question marks, "please", "can you", "could you",
@@ -106,7 +109,7 @@ For each thread, determine:
 - UNREAD: whether any message in the thread is unread (labelIds includes "UNREAD")
 
 Classify each thread:
-- ACT_NOW if: LAST_FROM_ALEX=false AND (UNREAD=true OR HAS_QUESTION_OR_ACTION=true) AND ADDRESSEE=true
+- ACT_NOW if: ALEX_REPLIED_IN_WINDOW=false AND (UNREAD=true OR HAS_QUESTION_OR_ACTION=true) AND ADDRESSEE=true
 - DIGEST otherwise
 
 Return structured list with fields: thread_id, subject, sender_name, sender_email,
@@ -178,8 +181,9 @@ After all 3 agents return:
 1. **Dedup by thread_id** across Agent 1 and Agent 3 (Agent 2 may overlap — keep invoice
    classification if a thread appears in both invoice and inbox results).
 
-2. **Act Now final filter:** Remove any thread where `LAST_FROM_ALEX=true` (Alex's message
-   is the most recent — he already replied, no new incoming message since).
+2. **Act Now final filter:** Remove any thread where `ALEX_REPLIED_IN_WINDOW=true` (Alex
+   sent a message in this thread within the scan window — he already covered it, even if
+   a later automated reply, OOO, or system notification arrived after).
 
 3. **Act Now ordering:** Sort by `last_message_ts` descending. Move threads whose
    `sender_email` matches any entry in `priority_senders` to the top.
