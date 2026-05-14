@@ -143,6 +143,7 @@ Do NOT exclude on HAS_ALEX_REPLY alone — Alex may have replied but still wants
 the invoice. Instead, mark threads with HAS_ALEX_REPLY=true with "[replied]" in the display.
 
 Classify remaining threads by subtype:
+- "amazon" if sender_email contains amazon (e.g. amazon.de, amazon.com) — check this first
 - "invoice" if subject or body contains: invoice, bill, due, payment due, amount due,
   Rechnung, Rechnungen, Mahnung, Mahnungen, accountspayable, accounts-payable
 - "order" if subject or body contains: order, shipped, delivery, tracking, arrives
@@ -194,7 +195,7 @@ After all 3 agents return:
 4. **Digest dedup:** Exclude from Digest any thread_id already in Act Now.
 
 5. **Invoice ordering:** Sort by `last_message_ts` descending, grouped by subtype:
-   invoices/bills first, then orders, then subscriptions.
+   invoices/bills first, then amazon, then orders, then subscriptions.
 
 6. Assign sequential item numbers across all sections: Act Now items 1…N, then
    Invoices N+1…M, then Digest M+1…Z. This lets Alex reference any item by a single
@@ -232,11 +233,14 @@ Invoices & Bills
   • {N+1}. Vendor Name — Invoice #1234 — $450.00 — due May 20
   • {N+2}. Vendor Name — Bill for services — $120.00
 
+Amazon
+  • {N+3}. Amazon — Order #123-456 — €14.53 — dispatched · arrives May 15
+
 Orders & Shipping
-  • {N+3}. Amazon — Order #123-456 — shipped · arrives May 15
+  • {N+4}. Vendor — Order #789 — shipped · arrives May 16
 
 Subscriptions
-  • {N+4}. Stripe — Monthly renewal — $99.00 — charged May 12
+  • {N+5}. Stripe — Monthly renewal — $99.00 — charged May 12
 
 → Say "forward invoice {N}" or "reply to {N}" — I'll apply "first follow up done" automatically.
 
