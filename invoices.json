@@ -1,0 +1,136 @@
+{
+  "invoices": [
+    {
+      "thread_id": "19e1cf3e30424af9",
+      "vendor": "TalentRadar / Cherry Altwal",
+      "subject": "Approval needed: TalentRadar Invoice - Sebastian Krebs AI050526",
+      "amount": "£20,547.00",
+      "first_seen": "2026-05-15",
+      "status": "paid",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "paid", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19e1dbe36ad9d4f0",
+      "vendor": "INGgreen",
+      "subject": "Invoices April 2026 INGgreen",
+      "amount": "€662.67",
+      "first_seen": "2026-05-15",
+      "status": "forwarded_ap",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "forwarded_ap", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19e1ffc5f9bfe118",
+      "vendor": "Sarek / Rüter+Partner",
+      "subject": "Approval needed: Sarekkabel invoice 910271",
+      "amount": "€10,505.92",
+      "first_seen": "2026-05-15",
+      "status": "forwarded_ap",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "forwarded_ap", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19d9f18e5f4cbf1b",
+      "vendor": "Porsche (Abnahmen)",
+      "subject": "Abnahmen",
+      "amount": null,
+      "first_seen": "2026-05-15",
+      "status": "forwarded_ap",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "forwarded_ap", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19e20d78828d897c",
+      "vendor": "Melissa Blume (AP process)",
+      "subject": "Re: erl -> germany-accountspayable@applied.co",
+      "amount": null,
+      "first_seen": "2026-05-15",
+      "status": "new",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "new", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19e1ceed3e47b35d",
+      "vendor": "Rapid Direct (Cherry approval)",
+      "subject": "Fwd: Approval needed: Rapid Direct QC152130010",
+      "amount": "€12,833.74",
+      "first_seen": "2026-05-15",
+      "status": "forwarded_ap",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "forwarded_ap", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19d86d91cdb92f97",
+      "vendor": "INGgreen",
+      "subject": "Invoices March 2026 INGgreen",
+      "amount": "€57,423.22",
+      "first_seen": "2026-05-15",
+      "status": "forwarded_ap",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "forwarded_ap", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19e1b615a20375e1",
+      "vendor": "Sarek",
+      "subject": "Rechnung 910271 - Ihre Bestellung 2026-02-12-1",
+      "amount": "€10,505.92",
+      "first_seen": "2026-05-15",
+      "status": "forwarded_ap",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "forwarded_ap", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19dfeab9cc4deafe",
+      "vendor": "Porsche",
+      "subject": "Approval needed: Porsche invoice 90002538",
+      "amount": "€93,105.60",
+      "first_seen": "2026-05-15",
+      "status": "new",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "new", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19dcfb59fd68e4a3",
+      "vendor": "Dataspeed",
+      "subject": "Deposit Invoice INV1603 for your Purchase Order #770565",
+      "amount": null,
+      "first_seen": "2026-05-15",
+      "status": "forwarded_ap",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "forwarded_ap", "date": "2026-05-15" }
+      ]
+    },
+    {
+      "thread_id": "19e07d2372425f8e",
+      "vendor": "Rapid Direct",
+      "subject": "Re: QC152130010",
+      "amount": "€12,833.74",
+      "first_seen": "2026-05-15",
+      "status": "new",
+      "status_updated": "2026-05-15",
+      "history": [
+        { "state": "new", "date": "2026-05-15" }
+      ]
+    }
+  ]
+}

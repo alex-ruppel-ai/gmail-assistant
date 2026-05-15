@@ -74,6 +74,29 @@ If `state.json` does not exist, treat `handled_invoice_threads` as an empty list
 This file is the primary mechanism for excluding already-actioned invoices across runs.
 It requires no Gmail write permissions during the automated briefing step.
 
+Also read `invoices.json` from the repo root. It tracks invoice/bill threads through the
+manual-payout workflow (invoices and bills only — amazon, orders, subscriptions excluded).
+If it does not exist, treat as `{ "invoices": [] }`. Store as `INVOICES_DB`.
+
+```json
+{
+  "invoices": [
+    {
+      "thread_id": "string",
+      "vendor": "string",
+      "subject": "string",
+      "amount": "string or null",
+      "first_seen": "YYYY-MM-DD",
+      "status": "new | forwarded_ap | cherry_approved | paid | closed",
+      "status_updated": "YYYY-MM-DD",
+      "history": [
+        { "state": "string", "date": "YYYY-MM-DD" }
+      ]
+    }
+  ]
+}
+```
+
 Also call `list_labels` to check whether a label named `"first follow up done"` exists.
 Store its `id` as `HANDLED_LABEL_ID` if found (used as a secondary signal in Step 1 Agent 2,
 and applied during interactive Step 5 when Alex is present to approve the permission).
@@ -139,8 +162,6 @@ For each thread, determine:
   (secondary signal — only applies if the label was found in Step 0b)
 
 Exclude threads where IN_STATE_JSON=true OR HAS_HANDLED_LABEL=true.
-Do NOT exclude on HAS_ALEX_REPLY alone — Alex may have replied but still wants to see
-the invoice. Instead, mark threads with HAS_ALEX_REPLY=true with "[replied]" in the display.
 
 Classify remaining threads by subtype:
 - "amazon" if sender_email contains amazon (e.g. amazon.de, amazon.com) — check this first
@@ -149,9 +170,27 @@ Classify remaining threads by subtype:
 - "order" if subject or body contains: order, shipped, delivery, tracking, arrives
 - "subscription" if subject or body contains: subscription, renewal, renews, plan, charged
 
+For threads with subtype "invoice" or "bill", determine STATUS by scanning all messages
+in the thread chronologically and taking the highest state reached. Never downgrade a
+status that already exists for this thread_id in INVOICES_DB — only advance it.
+
+Status detection (check in this order, highest wins):
+- "paid": any message FROM *@rueterpartner.de whose body contains payment-sent signals:
+  "payment has been made", "has been paid", "überwiesen", "sent out", "gemacht", "bezahlt"
+- "cherry_approved": any message FROM cherry.cheung-altwal@applied.co (or AP colleagues
+  at @applied.co replying in an AP thread) contains approval signals:
+  "approved", "please proceed", "go ahead", "proceed with payment", "confirmed"
+  — AND no "paid" signal found
+- "forwarded_ap": any message FROM alex.ruppel@applied.co has
+  germany-accountspayable@applied.co in TO or CC
+  — AND no "cherry_approved" or "paid" signal found
+- "new": none of the above apply
+
+For amazon, order, and subscription subtypes: status field is null (not tracked).
+
 For each included thread return: thread_id, subject, sender_name, sender_email,
-subtype, amount (extract if visible, else null), due_date (extract if visible, else null),
-snippet, last_message_ts.
+subtype, status (string or null), amount (extract if visible, else null),
+due_date (extract if visible, else null), snippet, last_message_ts.
 ```
 
 ---
@@ -203,6 +242,27 @@ After all 3 agents return:
 
 ---
 
+## Step 2b: Update invoices.json
+
+After merge, for each thread with subtype "invoice" or "bill":
+1. Look up thread_id in INVOICES_DB.
+2. If found and detected status is higher than stored status: advance it, append to
+   history, set status_updated to TODAY (YYYY-MM-DD).
+3. If not found: create a new record with vendor (sender_name), subject, amount,
+   first_seen = TODAY, status = detected status, status_updated = TODAY,
+   history = [{ "state": detected status, "date": TODAY }].
+4. Write the updated INVOICES_DB back to `invoices.json`, then commit and push:
+   ```bash
+   git add invoices.json
+   git commit -m "state: auto-update invoice statuses [{TODAY}]"
+   git push -u origin {BRANCH}
+   ```
+
+Status order for advancement: new < forwarded_ap < cherry_approved < paid < closed.
+Never write a lower status over a higher one.
+
+---
+
 ## Step 3: Display Results in Session
 
 Output the full briefing as formatted text in the session. This is what Alex sees
@@ -230,8 +290,31 @@ Summary: ...
 :receipt: 2. INVOICES, BILLS & ORDERS ({N} items · 7-day window)
 ━━━━━━━━━━━━━━━━━━━━
 Invoices & Bills
-  • {N+1}. Vendor Name — Invoice #1234 — $450.00 — due May 20
-  • {N+2}. Vendor Name — Bill for services — $120.00
+
+Status badges:
+  🆕 new — not yet forwarded
+  📤 fwd'd to AP — awaiting Cherry
+  ✅ Cherry approved — awaiting Rueter
+  💸 paid
+
+Stale flag: append  ⚠️ {H}h no update  when status_updated < 24h ago AND status ≠ paid.
+
+Display rules:
+- Omit threads with status "paid" where status_updated is more than 1 day ago.
+- Omit threads with status "closed".
+- Show all others, sorted by last_message_ts descending.
+
+Format per line:
+  • {N}. Vendor — Subject excerpt — Amount
+    {status_badge} {stale_flag}
+
+Example:
+  • 6. TalentRadar / Cherry — Sebastian Krebs — £20,547.00
+    💸 paid (Jenny · May 15)
+  • 7. Porsche — invoice 90002538 — €93,105.60
+    🆕 new ⚠️ 26h no update
+  • 8. INGgreen — April 2026 — €662.67
+    ✅ Cherry approved — awaiting Rueter ⚠️ 30h no update
 
 Amazon
   • {N+3}. Amazon — Order #123-456 — €14.53 — dispatched · arrives May 15
@@ -313,15 +396,18 @@ The session stays live after the briefing. Handle these commands:
 ### Marking an invoice as handled
 Whenever Alex takes any action on an invoice thread (reply, forward, label, archive):
 
-1. **Primary — update `state.json`** (no Gmail write, no permission prompt):
-   Add the thread_id to `handled_invoice_threads` in `state.json`, then commit and push:
+1. **Primary — update `invoices.json` status** and `state.json`:
+   - Advance the invoice record's status in INVOICES_DB to the appropriate next state
+     (e.g. forward to AP → "forwarded_ap", Cherry confirms → "cherry_approved",
+     explicit close/done → "closed"). Append to history. Set status_updated = TODAY.
+   - Also add the thread_id to `handled_invoice_threads` in `state.json` when marking done/closed.
+   - Commit and push both files:
    ```bash
-   # state.json is updated programmatically, then:
-   git add state.json
-   git commit -m "state: mark invoice {thread_id} as handled"
-   git push origin main
+   git add invoices.json state.json
+   git commit -m "state: advance invoice {thread_id} → {new_status}"
+   git push -u origin {BRANCH}
    ```
-   Confirm: "Marked as handled — won't appear in tomorrow's briefing."
+   Confirm: "Status updated to {new_status} — tracked in invoices.json."
 
 2. **Bonus — apply Gmail label** (requires one-time permission approval from Alex):
    If `HANDLED_LABEL_ID` is known, also call `label_thread` with it. If the label doesn't
