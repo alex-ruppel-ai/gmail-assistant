@@ -133,14 +133,26 @@ Deduplicate results by thread_id. For each thread call get_thread.
 For each thread, determine:
 - IN_STATE_JSON: whether thread_id appears in `handled_invoice_threads` from `state.json`
   (primary exclusion signal — no Gmail write needed)
-- HAS_ALEX_REPLY: whether any message in the thread is FROM alex.ruppel@applied.co
-  AND has a timestamp AFTER the first invoice/bill message in the thread
+- ALEX_ACTION: determine how Alex participated in the thread (after the first invoice message):
+  - "forwarded" if any message FROM alex.ruppel@applied.co has "Fwd:" or "FW:" in the subject,
+    or the body starts with "---------- Forwarded message"
+  - "replied" if any other message FROM alex.ruppel@applied.co exists after the first invoice message
+  - null if Alex sent nothing
+- APPROVED_BY: scan all message bodies for approval signals — words like "approved", "confirmed",
+  "payment approved", "freigegeben", "bestätigt". If found, extract the first name of the sender
+  of that message (e.g. "Cherry", "Mihir", "André"). If multiple approvers, list all first names
+  separated by " & ". null if no approval signal found.
 - HAS_HANDLED_LABEL: whether the thread's labelIds contains `HANDLED_LABEL_ID`
   (secondary signal — only applies if the label was found in Step 0b)
 
 Exclude threads where IN_STATE_JSON=true OR HAS_HANDLED_LABEL=true.
-Do NOT exclude on HAS_ALEX_REPLY alone — Alex may have replied but still wants to see
-the invoice. Instead, mark threads with HAS_ALEX_REPLY=true with "[replied]" in the display.
+
+Determine STATUS for each remaining thread (show exactly one, in priority order):
+1. `[approved by {First Name}]` — if APPROVED_BY is not null (e.g. "[approved by Cherry]",
+   "[approved by Cherry & Mihir]")
+2. `[alex forwarded]` — if ALEX_ACTION = "forwarded"
+3. `[alex replied]` — if ALEX_ACTION = "replied"
+4. `[pending]` — if none of the above
 
 Classify remaining threads by subtype:
 - "amazon" if sender_email contains amazon (e.g. amazon.de, amazon.com) — check this first
@@ -151,7 +163,7 @@ Classify remaining threads by subtype:
 
 For each included thread return: thread_id, subject, sender_name, sender_email,
 subtype, amount (extract if visible, else null), due_date (extract if visible, else null),
-snippet, last_message_ts.
+snippet, status, last_message_ts.
 ```
 
 ---
@@ -230,17 +242,17 @@ Summary: ...
 :receipt: 2. INVOICES, BILLS & ORDERS ({N} items · 7-day window)
 ━━━━━━━━━━━━━━━━━━━━
 Invoices & Bills
-  • {N+1}. Vendor Name — [Invoice #1234 — $450.00 — due May 20](https://mail.google.com/mail/u/0/#all/{thread_id})
-  • {N+2}. Vendor Name — [Bill for services — $120.00](https://mail.google.com/mail/u/0/#all/{thread_id})
+  • {N+1}. Vendor Name — [Invoice #1234 — $450.00 — due May 20](https://mail.google.com/mail/u/0/#all/{thread_id}) `[approved by Cherry]`
+  • {N+2}. Vendor Name — [Bill for services — $120.00](https://mail.google.com/mail/u/0/#all/{thread_id}) `[pending]`
 
 Amazon
-  • {N+3}. Amazon — [Order #123-456 — €14.53 — dispatched · arrives May 15](https://mail.google.com/mail/u/0/#all/{thread_id})
+  • {N+3}. Amazon — [Order #123-456 — €14.53 — dispatched · arrives May 15](https://mail.google.com/mail/u/0/#all/{thread_id}) `[pending]`
 
 Orders & Shipping
-  • {N+4}. Vendor — [Order #789 — shipped · arrives May 16](https://mail.google.com/mail/u/0/#all/{thread_id})
+  • {N+4}. Vendor — [Order #789 — shipped · arrives May 16](https://mail.google.com/mail/u/0/#all/{thread_id}) `[alex replied]`
 
 Subscriptions
-  • {N+5}. Stripe — [Monthly renewal — $99.00 — charged May 12](https://mail.google.com/mail/u/0/#all/{thread_id})
+  • {N+5}. Stripe — [Monthly renewal — $99.00 — charged May 12](https://mail.google.com/mail/u/0/#all/{thread_id}) `[pending]`
 
 → Say "forward invoice {N}" or "reply to {N}" — I'll apply "first follow up done" automatically.
 
