@@ -216,13 +216,13 @@ when he opens the run link.
 
 :email: 1. ACT NOW ({N} items)
 ━━━━━━━━━━━━━━━━━━━━
-*1. Sender Name* <sender@example.com> — Subject line
+*1. Sender Name* <sender@example.com> — [Subject line](https://mail.google.com/mail/u/0/#all/{thread_id})
 Summary: What they're asking or what action is needed (2–3 sentences).
 → Say "reply to 1" to draft a response.
 
 ─────
 
-*2. Sender Name* <sender@example.com> — Subject line
+*2. Sender Name* <sender@example.com> — [Subject line](https://mail.google.com/mail/u/0/#all/{thread_id})
 Summary: ...
 → Say "reply to 2" to draft a response.
 
@@ -230,17 +230,17 @@ Summary: ...
 :receipt: 2. INVOICES, BILLS & ORDERS ({N} items · 7-day window)
 ━━━━━━━━━━━━━━━━━━━━
 Invoices & Bills
-  • {N+1}. Vendor Name — Invoice #1234 — $450.00 — due May 20
-  • {N+2}. Vendor Name — Bill for services — $120.00
+  • {N+1}. Vendor Name — [Invoice #1234 — $450.00 — due May 20](https://mail.google.com/mail/u/0/#all/{thread_id})
+  • {N+2}. Vendor Name — [Bill for services — $120.00](https://mail.google.com/mail/u/0/#all/{thread_id})
 
 Amazon
-  • {N+3}. Amazon — Order #123-456 — €14.53 — dispatched · arrives May 15
+  • {N+3}. Amazon — [Order #123-456 — €14.53 — dispatched · arrives May 15](https://mail.google.com/mail/u/0/#all/{thread_id})
 
 Orders & Shipping
-  • {N+4}. Vendor — Order #789 — shipped · arrives May 16
+  • {N+4}. Vendor — [Order #789 — shipped · arrives May 16](https://mail.google.com/mail/u/0/#all/{thread_id})
 
 Subscriptions
-  • {N+5}. Stripe — Monthly renewal — $99.00 — charged May 12
+  • {N+5}. Stripe — [Monthly renewal — $99.00 — charged May 12](https://mail.google.com/mail/u/0/#all/{thread_id})
 
 → Say "forward invoice {N}" or "reply to {N}" — I'll apply "first follow up done" automatically.
 
@@ -248,16 +248,16 @@ Subscriptions
 :inbox_tray: 3. DIGEST ({N} items)
 ━━━━━━━━━━━━━━━━━━━━
 Work
-  • {M+1}. Sender — Subject — one-line summary
+  • {M+1}. Sender — [Subject](https://mail.google.com/mail/u/0/#all/{thread_id}) — one-line summary
 
 Newsletter
-  • {M+2}. Sender — Subject — one-line summary
+  • {M+2}. Sender — [Subject](https://mail.google.com/mail/u/0/#all/{thread_id}) — one-line summary
 
 Personal
-  • {M+3}. Sender — Subject — one-line summary
+  • {M+3}. Sender — [Subject](https://mail.google.com/mail/u/0/#all/{thread_id}) — one-line summary
 
 Other
-  • {M+4}. Sender — Subject — one-line summary
+  • {M+4}. Sender — [Subject](https://mail.google.com/mail/u/0/#all/{thread_id}) — one-line summary
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
