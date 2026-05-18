@@ -138,9 +138,14 @@ For each thread, determine:
     or the body starts with "---------- Forwarded message"
   - "replied" if any other message FROM alex.ruppel@applied.co exists after the first invoice message
   - null if Alex sent nothing
-- APPROVED_BY: scan all message bodies for approval signals — words like "approved", "confirmed",
-  "payment approved", "freigegeben", "bestätigt". If found, extract the first name of the sender
-  of that message (e.g. "Cherry", "Mihir", "André"). If multiple approvers, list all first names
+- PAID_OUT_BY: scan all message bodies for payout/payment-sent signals — phrases like
+  "payment has been made", "has been paid", "payment sent", "überwiesen", "bezahlt",
+  "Zahlung erfolgt", "Zahlung wurde", "the payment was made". If found, extract the first name
+  of the sender of that message (e.g. "Jenny", "Jenni"). null if no payout signal found.
+- APPROVED_BY: scan all message bodies for internal approval signals — words like "approved",
+  "confirmed", "payment approved", "freigegeben", "bestätigt", "I approve", "Please pay",
+  "please payout". If found, extract the first name of the sender of that message
+  (e.g. "Cherry", "Mihir", "André"). If multiple approvers, list all first names
   separated by " & ". null if no approval signal found.
 - HAS_HANDLED_LABEL: whether the thread's labelIds contains `HANDLED_LABEL_ID`
   (secondary signal — only applies if the label was found in Step 0b)
@@ -148,11 +153,13 @@ For each thread, determine:
 Exclude threads where IN_STATE_JSON=true OR HAS_HANDLED_LABEL=true.
 
 Determine STATUS for each remaining thread (show exactly one, in priority order):
-1. `[approved by {First Name}]` — if APPROVED_BY is not null (e.g. "[approved by Cherry]",
+1. `[paid out — confirmed by {First Name}]` — if PAID_OUT_BY is not null
+   (e.g. "[paid out — confirmed by Jenny]")
+2. `[approved by {First Name}]` — if APPROVED_BY is not null (e.g. "[approved by Cherry]",
    "[approved by Cherry & Mihir]")
-2. `[alex forwarded]` — if ALEX_ACTION = "forwarded"
-3. `[alex replied]` — if ALEX_ACTION = "replied"
-4. `[pending]` — if none of the above
+3. `[alex forwarded]` — if ALEX_ACTION = "forwarded"
+4. `[alex replied]` — if ALEX_ACTION = "replied"
+5. `[pending]` — if none of the above
 
 Classify remaining threads by subtype:
 - "amazon" if sender_email contains amazon (e.g. amazon.de, amazon.com) — check this first
@@ -242,8 +249,9 @@ Summary: ...
 :receipt: 2. INVOICES, BILLS & ORDERS ({N} items · 7-day window)
 ━━━━━━━━━━━━━━━━━━━━
 Invoices & Bills
-  • {N+1}. Vendor Name — [Invoice #1234 — $450.00 — due May 20](https://mail.google.com/mail/u/0/#all/{thread_id}) `[approved by Cherry]`
-  • {N+2}. Vendor Name — [Bill for services — $120.00](https://mail.google.com/mail/u/0/#all/{thread_id}) `[pending]`
+  • {N+1}. Vendor Name — [Invoice #1234 — $450.00 — due May 20](https://mail.google.com/mail/u/0/#all/{thread_id}) `[paid out — confirmed by Jenny]`
+  • {N+2}. Vendor Name — [Invoice #5678 — $900.00](https://mail.google.com/mail/u/0/#all/{thread_id}) `[approved by Cherry]`
+  • {N+3}. Vendor Name — [Bill for services — $120.00](https://mail.google.com/mail/u/0/#all/{thread_id}) `[pending]`
 
 Amazon
   • {N+3}. Amazon — [Order #123-456 — €14.53 — dispatched · arrives May 15](https://mail.google.com/mail/u/0/#all/{thread_id}) `[pending]`
